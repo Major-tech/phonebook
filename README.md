@@ -17,7 +17,7 @@ Installation
 Option 1: Clone Repository
 
 git clone <https://github.com/Major-tech/phonebook>
-cd phonebook-project
+cd phonebook
 python main.py
 
 Option 2: Install via pip (planned structure)

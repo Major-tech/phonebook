@@ -2,7 +2,7 @@ from phonebook.services.auth_service import register_contact
 from phonebook.services.contact_service import search_contact, update_contact, delete_contact
 
     
-def dispatch(option: int):
+def dispatch(option: int) -> None:
     """Dispatch commands"""
 
     # EXIT
