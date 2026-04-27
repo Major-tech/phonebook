@@ -5,7 +5,7 @@ from phonebook.cli.dispatcher import dispatch
 from phonebook.domain.exceptions import AppError
 
 
-def main() -> None:
+def run_cli() -> None:
     """Orchestrates the program"""
 
     while True:
@@ -21,10 +21,14 @@ def main() -> None:
             print(e)
         except ValueError as e:
             print(e) 
-        #except Exception as e:
-           # print(f"Unexpected error: {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
 
-    
+
+def main() -> None:
+    run_cli()
+
 
 if __name__ == "__main__":
     main()
+
