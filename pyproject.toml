@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "phonebook"
+version = "0.1.0"
+description = "A menu-driven CLI phonebook application for managing contacts using dictionary data structures and file-based storage"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+{ name = "Dennis Major" }
+]
+license = { text = "MIT" }
+keywords = ["cli", "phonebook", "contacts", "file-io", "practice"]
+
+Optional but improves discoverability (especially for GitHub/PyPI later)
+
+classifiers = [
+"Programming Language :: Python :: 3",
+"Programming Language :: Python :: 3.10",
+"License :: OSI Approved :: MIT License",
+"Operating System :: OS Independent",
+"Environment :: Console",
+"Intended Audience :: Developers",
+]
+
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Major-tech/phonebook"
+Repository = "https://github.com/Major-tech/phonebook"
+Issues = "https://github.com/Major-tech/phonebook/issues"
+
+[project.scripts]
+phonebook = "phonebook.main:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+Ensures non-code files (e.g., data templates if added later) are included
+
+[tool.setuptools.package-data]
+"phonebook" = ["py.typed"]
+
+-------------------------------
+
+Development Tooling (Optional)
+
+-------------------------------
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["phonebook"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
