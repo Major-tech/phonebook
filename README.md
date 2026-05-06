@@ -124,45 +124,53 @@ This project follows a layered architecture to ensure separation of concerns and
   
 Project Structure
 
-phonebookproject/
-├── CHANGELOG.md
-├── README.md
-├── pyproject.toml
-│
-├── src/
-│   └── phonebook/
-│       ├── main.py
-│
-│       ├── cli/
-│       │   ├── dispatcher.py
-│       │   ├── menu.py
-│       │   ├── display.py
-│       │   └── input_handlers.py
-│
-│       ├── services/
-│       │   ├── contact_service.py
-│       │   ├── auth_service.py
-│       │   └── formatters.py
-│
-│       ├── domain/
-│       │   └── exceptions.py
-│
-│       ├── repository/
-│       │   └── contact_repository.py
-│
-│       ├── validators/
-│       │   ├── input_validator.py
-│       │   └── phone_validator.py
-│
-│       └── core/
-│           ├── state.py
-│           └── constants.py
-│
-└── tests/
-    ├── test_input_handlers/
-    ├── test_repository/
-    ├── test_services/
-    └── test_validators/ 
+graph TD
+
+    UI[CLI Layer]
+    SVC[Service Layer]
+    REP[Repository Layer]
+    DOM[Domain Layer]
+    VAL[Validation Layer]
+    CORE[Core / Config Layer]
+    PATH[Path Management Layer]
+
+    %% CLI layer
+    UI --> UI1[dispatcher]
+    UI --> UI2[menu]
+    UI --> UI3[input_handlers]
+    UI --> UI4[display]
+    UI --> UI5[formatters]
+
+    %% Services
+    SVC --> SVC1[contact_service]
+    SVC --> SVC2[auth_service]
+
+    %% Repository
+    REP --> REP1[contact_repository]
+
+    %% Domain
+    DOM --> DOM1[exceptions]
+
+    %% Validation
+    VAL --> VAL1[input_validator]
+    VAL --> VAL2[phone_validator]
+
+    %% Core
+    CORE --> CORE1[constants]
+
+    %% Paths
+    PATH --> PATH1[base]
+    PATH --> PATH2[data]
+    PATH --> PATH3[contacts]
+
+    %% Architecture flow
+    UI --> SVC
+    SVC --> REP
+    SVC --> DOM
+    SVC --> VAL
+    REP --> PATH
+    SVC --> CORE
+    UI --> CORE
 
 ---
     
