@@ -1,6 +1,5 @@
 Phonebook App
 
-Version: 0.1.0
 Author: Dennis Major
 License: MIT
 
