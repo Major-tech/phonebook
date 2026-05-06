@@ -44,6 +44,18 @@ The application runs as a menu-driven CLI:
 
 VERSION AND FEATURES
 
+[1.0.0] - 2026-05-06
+
+## Updates in Version 1.0.0
+
+### Major Changes:
+- **Data Storage Format**: Transitioned from using custom-delimited text files to JSON format for data storage.
+- **Data Representation**: Updated from dictionaries with custom separators to structured JSON objects.
+- **Use of Tuples**: Incorporated tuples for certain data structures to enhance data handling and processing.
+
+These updates are intended to improve data management and provide a more standardized approach to handling information within the app.
+
+
 [0.1.0] - 2026-04-27
 
 - Add Contact

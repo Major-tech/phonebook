@@ -1,6 +1,9 @@
-from phonebook.domain.exceptions import TooManyInvalidAttemptsError
+from phonebook.domain.exceptions import InvalidSelectionError, MissingContactNameError, MissingPhoneNumberError, PhoneNumberQueryRequiredError, NameQueryRequiredError, InvalidContactSelectionError
 from phonebook.validators.input_validator import is_valid_int_option
+from phonebook.validators.phone_validator import is_duplicate_number, is_valid_phone_format, is_duplicate_number
 from phonebook.cli.display import display_contacts
+from phonebook.core.constants import PHONE_NUMBER_TYPES 
+from phonebook.cli.formatters import prefix_country_code
 
 
 # VARIABLES
@@ -10,119 +13,136 @@ SEARCH OPTIONS
 2) Search by phone
 
 Enter option: """
-
+ 
 # ----- GET USER OPTION -----
 
-def get_int_option(prompt) -> int:
+def parse_int(number: str) -> int:
+    """Returns an integer"""
+
+    try:
+        return int(number)
+    except ValueError:
+        raise InvalidSelectionError("Invalid selection format")
+
+
+def get_int_option(prompt: str, start: int, end: int) -> int | None:
     """Ensures a user selects an option wnd it's an int"""
 
-    for i in range(3):
+    for _ in range(3):
         try:
-            option = int(input(prompt))
-        except ValueError:
-            if i < 2:
-                print("Please enter a valid number")
+            option = input(prompt)
+
+            # Convert to integer
+            option = parse_int(option)
+
+            #  Check if option is in range
+            option = is_valid_int_option(option, start, end)
+
+            return option     
+
+        except InvalidSelectionError as e:
+            if _ < 2:
+                print(e)
             else:
-                raise TooManyInvalidAttemptsError()
-        else:
-            break
+                raise 
 
-    return option
-
-
-def collect_search_option(prompt: str, start: int, end: int) -> int | None:
-    """Collects a user's search option"""
-
-    # User search option
-    search_option = get_int_option(prompt)
-    # Validate option
-    search_option = is_valid_int_option(search_option, start, end)
-
-    return search_option
-
-
-# ----- GET PHONE NUMBER ----- 
 
 # FOR REGISTRATION / UPDATE 
-def prompt_phone_number(position: int = None) -> int | None:
-    """Prompts for a contact's phone numbers"""
 
-    # Convert number to a string
-    number = str(position)
+def get_validated_phone_number(number_type: str, count: int = 3) -> str | None:
+    """Prompt for a phone number, validate its format and uniqueness, and return a verified value or raise an error."""
 
-    for i in range(3):
-        try:
-            phone = input(f"\nPhone number {position}\n(Press Enter to skip): ")
-            # If user skips adding the phone number
-            if not phone:
-                return None
-            # If a value is given ,convert it to an int
-            elif phone:
-                phone = int(phone)
-                return phone
+    for _ in range(count):
+        phone = input(f"\n(Press Enter to skip)\n{number_type.capitalize()}: ")
+        
+        # If user skips adding the phone number
+        if not phone:
+            break
 
-        except ValueError:
-            if i < 2:
-                print("Please enter a number")
+        # Validate phone number format
+        if is_valid_phone_format(phone):
+            
+            # Add country code
+            phone = prefix_country_code(phone)
+
+            # Check for duplicates
+            duplicate = is_duplicate_number(phone)
+            # Duplicate found
+            if duplicate:
+                name, number = duplicate
+                print("DUPLICATE FOUND:")
+                print(f"Name: {name}")
+                print(f"Phone: {number}")
+                continue 
             else:
-                # If maximum attempts are reached
-                raise TooManyInvalidAttemptsError()
+                return phone 
+        else:
+            print("Please enter a valid phone number")
+            continue
+            
 
+def collect_phone_numbers(mode="add") -> dict[str, str]:
+    """Collect phone numbers"""
 
-def collect_phone_numbers(count: int = 3) -> dict:
-    """Collect phone number"""
-
-    phone_nums = {}
-
+    phone_nums = {} 
+    
     # Phone numbers
-    print("\n[You can store upto 3 different phone numbers per contact]")
+    print("\n[You can store upto 3 different phone numbers per contact.At least one phone number is needed]")
 
-    for i in range(1, count + 1):
-        # Prompt user for phone numbers
-        phone = prompt_phone_number(i)
-        phone_nums[f"phone number {i}"] = phone
+    # Get and store numbers 
+    for phone_type in PHONE_NUMBER_TYPES:
+        phone = get_validated_phone_number(phone_type) 
+        if phone:
+            phone_nums[phone_type] = phone
+
+    # Not a single phone number is given and mode == "add" 
+    if not len(phone_nums.values()) and mode == "add":
+        raise MissingPhoneNumberError("\nCannot create contact: at least one phone number (e.g., mobile, work, or home) is required.") 
 
     return phone_nums
 
 
-# TO UPDATE, SEARCH OR DELETE 
+# TO SEARCH, UPDATE OR DELETE 
 
-def collect_phone_num() -> int | None:
+def collect_phone_num(count : int = 3) -> str:
     """Prompts a user for a phone number"""
 
-    for i in range(3):
-        try:
-            phone = input(
-                    "\n\nNB: THE FIRST NUMBER SHOULD BE '7' NOT '0'.\nEnter the complete number or any length of numbers belonging to any phone number of the contact  you want.\n (Example: '72345' or '58'): "
+    for _ in range(count):
+    
+        phone = input(
+                    "\nEnter the complete number or any length of numbers belonging to any phone number of the contact  you want.\n (Example: '72345' or '58'): "
                 )
 
-            # Number validation
-            if not phone:
-                print("\nYou did not type anything")
-                continue
-    
-            if phone:
-                  phone = int(phone)
-                
-            break
-        
-        except ValueError:
-            if i < 2:
-                printr("\nPlease enter valid numbers")
+        # Phone number query is given
+        if phone:
+
+            # If phone has numerics or "+"
+            if phone.isdigit():
+                return phone
+            elif "+" in phone and len(phone) == 1:
+                return phone
+            elif phone[0] == "+" and phone[1:].isdigit():
+                return phone
+
+            # Reject non-numerical values 
             else:
-                break 
+                print("\nPlease write a valid phone number query")
 
-    return phone
-
+        # Blank field 
+        if not phone:
+            print("\nYou did not type anything")
+    
+    raise PhoneNumberQueryRequiredError("\nSearch failed: a phone number query is required to look up a contact.")
+        
 
 # ----- GET CONTACT NAME ----- 
 
 # FOR REGISTRATION 
 
-def collect_contact_name(mode="add", count=3) -> str | None:
+def collect_contact_name(mode: str ="add", count: int =3) -> str | None:
     """Return a contact's name"""
 
-    for i in range(count):
+    for _ in range(count):
         # Contact name
 
         # In uodate mode, user can skip name
@@ -131,70 +151,77 @@ def collect_contact_name(mode="add", count=3) -> str | None:
 
         name = input("Enter contact name: ")
 
+        # Name is given
+        if name:
+            return name
+
         # No contact name given
         if not name:
-            # ADD
+
+            # mode == ADD
             if mode == "add":
-                if i < 3:
+                if _ < (count - 1):
                     print("This is required")
-                    continue
-            # UPDATE
+
+            # mode == UPDATE
             else:
                 return None
                 
-        return name
+    # Stop if no name is given during sign up
+    raise MissingContactNameError("\nContact name is required but was not provided after retries")
 
 
-# TO UPDATE, SEARCH OR DELETE
-def collect_name() -> str | None:
+# TO SEARCH, UPDATE OR DELETE
+
+def collect_name() -> str:
     """Prompts a user for a contact name"""
 
-    for i in range(3):
+    for _ in range(3):
         name = input(
             "\nEnter the full name or any number of letters matching the contact name you want: "
-        )
+        ) 
+
+        # Name is given 
+        if name:
+            return name 
+
         # Name validation
         if not name:
             print("\nYou did not type anything")
-            continue
 
-        break 
-
-    if not name:
-        return None 
-
-    return name
+    # Stop if no name is given
+    raise NameQueryRequiredError("\nSearch failed: a contact name is required to look up a contact.")
 
 
 # ----- SELECT CONTACT ----- 
 
 def choose_contact(
-    contacts: list[dict[str, list]], search_query: str | int = None
-) -> dict[str, list[int | None]]:
+        contacts: list[dict[str, dict[str, str]]] , search_query: str) -> dict[str, dict[str,str]]:
     """Contact selection"""
 
-    # Empty list
-    if not contacts:
-        print(f"\nNo contacts matching {search_query} were found")
-        return contacts 
-
     # Search option -> phone number
-    if isinstance(search_query, int):
-        print(f"\nContacts matching: {search_query}\n")
+    if search_query.isdigit() or "+" in search_query:
+        print("\nSEARCH BY PHONE NUMBER\n"      )
 
     # Search option -> name
-    if isinstance(search_query, str):
-        print(f"\nContacts matching: '{search_query}'\n")
+    else:
+        print("\nSEARCH BY NAME")
+    
+    # Heading 
+    print(f"\nContacts matching: '{search_query}'\n")
     
     # List contacts 
     display_contacts(contacts)
     
-    # Get user's selection
-    user_option = collect_search_option("\nEnter corresponding number of the contact to update:  ",  1, len(contacts) + 1) 
-    
-    # If user_option is in range
+    try:
+        # Get user's selection and check whether ut is in range
+        user_option = get_int_option("\nEnter corresponding number of the contact you want:  ",  1, len(contacts) + 1) 
+
+    except InvalidSelectionError as e:
+        raise InvalidContactSelectionError("\nContact selection failed - out of range") from e
+
+    # User option is in range
     if user_option:
         contact = contacts[user_option - 1]
 
-        return contact
-
+    return contact 

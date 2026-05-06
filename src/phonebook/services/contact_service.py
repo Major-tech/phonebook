@@ -1,77 +1,79 @@
 from phonebook.repository.contact_repository import append_contact, save_all_contacts, load_contacts
-from phonebook.validators.phone_validator import is_duplicate
-from phonebook.cli.input_handlers import search_options_prompt, collect_search_option, collect_contact_name, collect_phone_numbers, collect_name, collect_phone_num, choose_contact
-
-from phonebook.core.state import my_phonebook
+from phonebook.domain.exceptions import ContactNotFoundError
+from phonebook.cli.input_handlers import search_options_prompt, get_int_option, collect_contact_name, collect_phone_numbers, collect_name, collect_phone_num, choose_contact
 
 
 # ----- ADD ----- 
 
-def add_contact(contact_name, phone_dict) -> str:
+def add_contact(contact: dict[str | None, dict[str, str]]) -> str | None:
     """Save contact name and numbers to the phonebook"""
 
     # If name and phone numbers are given
-    if contact_name and phone_dict:
+    if contact:
 
         # Save to file
-        append_contact(contact_name, phone_dict)
+        new_contact = append_contact(contact)
         
-        return contact_name
+        if new_contact:
+            name = [n for n in new_contact][0]
+
+            return name
 
 
 # ----- SEARCH -----
 
-def search_contact() -> str:
+def search_contact() -> None:
     """Lookup an existing contact"""
 
     # Search option
-    search_option = collect_search_option(search_options_prompt, 1, 3)
+    search_option = get_int_option(search_options_prompt, 1, 3)
 
     # Selected contact
     contact = collect_contact_details(search_option)
 
-    if contact:
-        for k, v in contact.items(): 
-            return f"{k} | {v[0]} | {v[1]} | {v[2]}"
+    # Display selected contact
+    print("\nSELECTED CONTACT")
+
+    for name, numbers in contact.items():
+        print(f"Name: {name}")
+
+        for phone_type, number in numbers.items():
+            print(f"{phone_type.capitalize()}: {number}")
 
 
 # ----- UPDATE -----
 
-def update_contact() -> str:
+def update_contact() -> str | None:
     """Updates an existing contact"""
 
     # Search option
-    search_option = collect_search_option(search_options_prompt, 1, 3)
+    search_option = get_int_option(search_options_prompt, 1, 3)
 
     # Selected contact 
     contact_to_update = collect_contact_details(search_option) 
-
-     # If a contact is selected 
-    if contact_to_update:
-        # Get current name, updated name and phone numbers 
-        result = update_contact_details(contact_to_update)
-    else:
-        return 
+   
+    # Update contact details
+    result = update_contact_details(contact_to_update)
 
     if result is None:
         # Exit 
         return 
     else:
-        current_name, updated_contact_details = result
+        # Get current name, and updated name and phone numbers
+        old_name, updated_contact_details = result
 
     # Read phonebook 
-    phonebook = my_phonebook()
+    phonebook = load_contacts()
 
     # Non-empty phonebook
-
     if phonebook:
     
         # Delete old contact details 
-        old_name = current_name
-        phonebook.pop(current_name)
-    
+        #old_name = current_name
+        phonebook["contacts"].pop(old_name)
+        print(updated_contact_details) 
         # Insert updated contact details
-        phonebook.update(updated_contact_details)
+        phonebook["contacts"].update(updated_contact_details)
     
         # Save phonebook to file
         save_all_contacts(phonebook) 
@@ -81,71 +83,38 @@ def update_contact() -> str:
 
 # ----- DELETE -----
 
-def delete_contact() -> str:
+def delete_contact() -> str | None:
     """Delete an existing contact"""
 
     # Search option
-    search_option = collect_search_option(search_options_prompt, 1, 3)
+    search_option = get_int_option(search_options_prompt, 1, 3)
 
     # Selected contact
     contact_to_delete = collect_contact_details(search_option)
 
-    # Valid contact
-    if contact_to_delete:
-        # Read phonebook
-        phonebook = my_phonebook()
-
-        # Non-empty phonebook
-        if phonebook:
-            # Get contact name
-            contact_name = [name for name in contact_to_delete][0]
-            deleted_contact = contact_name
-
-            # Delete contact
-            phonebook.pop(contact_name)
-
-            # Save phonebook to file 
-            save_all_contacts(phonebook)
-
-            return deleted_contact
-
-
-# ----- PHONEBOOK ----- 
-
-def my_phonebooks() -> dict[str, list[int | None]]:
-    """Retrieves all phonebook contacts"""
-
-    phonebook = {} 
-
-    # Read File 
-    contacts = load_contacts() 
+    # Read phonebook
+    phonebook = load_contacts()
 
     # Non-empty phonebook
-    if contacts:
+    if phonebook:
+        # Get contact name
+        contact_name = [name for name in contact_to_delete][0]
+        deleted_contact = contact_name
 
-        # Clean the data
-        # For each contact
-        for contact in contacts:
-            # Convert it to a string
-            contact_string = "".join(contact)
-            # Split on "|" and assign name and phone numbers
-            name, p1, p2, p3 = contact_string.split("|")
+        # Delete contacta
+        phonebook["contacts"].pop(contact_name) 
 
-            # Cleaned data
-            phonebook[name] = [p1, p2, p3]
-            
-        # Convert phone numbers to integers
-        for k,v in phonebook.items():
-            phonebook[k] = [None if 'None' in n else int(n) for n in v]
-            
-        return phonebook
- 
+        # Save phonebook to file 
+        save_all_contacts(phonebook)
+
+        return deleted_contact
+
 
 # ----- GET A SINGLE CONTACT'S DETAILS -----
 
 # FOR CONTACT SIGNUP 
 
-def collect_signup_contact_details() -> tuple(str, dict[int | None]):
+def collect_signup_contact_details() -> tuple[str | None, dict[str, str]]:
     """Collects contact name and phone number(s)"""
     # Input Aggregator
 
@@ -160,150 +129,122 @@ def collect_signup_contact_details() -> tuple(str, dict[int | None]):
 
 # TO UPDATE, SEARCH OR DELETE
 
-def collect_contact_details(search_option: int | None) -> tuple[str, dict[str, list[int | None]]]:
+def collect_contact_details(search_option: int | None) -> dict[str, dict[str, str]]: 
     """Update existing contact details"""
-
-    # search option -> None
-    if search_option == None:
-        return None
 
     # search option -> 1 (name)
     if search_option == 1:
-        name = collect_name()
+        name = collect_name() 
+    
         contacts_by_name = get_contacts_by_name(name)
         selected_contact = choose_contact(contacts_by_name, search_query=name)
+        
 
     # search option -> 2 (phone_number)
-    if search_option == 2:
+    elif search_option == 2:
 
         # Get user input(number)
         phone_num = collect_phone_num()
-        # Get list of contact(s) whose first 5 numbers are identical or list of one unique number
+
+        # Get list of contact(s) whose numbers are identical
         contacts_by_phone_num = get_contacts_by_phone_num(phone_num)
-        # User selects one contact to update
+        # User selects one contact 
         selected_contact = choose_contact(contacts_by_phone_num, search_query=phone_num)
 
     # Work with selected_contact
-    if selected_contact:
-        return selected_contact 
-    # User option not in range
-    else:
-        print("No contact was selected.")
-        return 
-
+    return selected_contact 
+         
 
 # ----- GET CONTACTS BY NAME ----- 
 
-def get_contacts_by_name(name: str | None) -> list[dict[str, list[int | None]]]:
+def get_contacts_by_name(name_query: str) -> list[dict[str, dict[str, str]]]:
     """Retrieve multiple contacts with almost identical names"""
 
     # Read phonebook
-    phonebook = my_phonebook()
+    phonebook = load_contacts()
+
+    # Identical names
+    matching_names = []
 
     # Non-empty phonebook
     if phonebook:
-        # Identical names
-        matching_names = []
 
-        # For each name and list of phone numbers belonging to a single contact
-        for k, v in phonebook.items():
-            # Look for a match in every contact name
-            if name in k:
-                matching_names.append({k: v})
+        # Look for a match in each saved contact's name
+        for name, numbers in phonebook["contacts"].items():
+            if name_query in name:
+                matching_names.append({name: numbers})
 
-        return matching_names
+    # Raise error if there were no matches found
+    if not matching_names:
+        raise ContactNotFoundError(name_query)
+
+    return matching_names
 
 
 # ----- GET CONTACTS BY PHONE NUMBER ----- 
 
-def get_contacts_by_phone_num(phone_number: int | None) -> list[dict]:
+def get_contacts_by_phone_num(phone_number_query: str) -> list[dict[str, dict[str, str]]]:
     """Retrieve multiple contacts by phone number"""
 
     # Read phonebook
-    phonebook = my_phonebook()
+    phonebook = load_contacts()
+ 
+    # Identical phone nums
+    matching_phone_nums = []
 
     # Non-empty phonebook
     if phonebook:
 
-        # Identical phone nums
-        matching_phone_nums = []
+        # Check if the phone number snippet is in any saved phone numbers 
+        for name, numbers in phonebook["contacts"].items():
+            for number in numbers.values():
+                if phone_number_query in number:
+                    matching_phone_nums.append({name: numbers})
 
-        # For each name and list of phone numbers belonging to a single contact
-        for k, v in phonebook.items():
-            # For num in that list
-            for n in v:
-                # Convert phone numbers and the search_query to strings when comparing
-                if str(phone_number) in str(n):
-                    matching_phone_nums.append({k: v})
+    # Raise error if there were no matches foun      d
+    if not matching_phone_nums:
+        raise ContactNotFoundError(phone_number_query)
 
-        return matching_phone_nums
+    return matching_phone_nums
 
 
 # ----- UPDATE A SINGLE CONTACT'S DETAILS -----
 
 def update_contact_details(
-    current_contact_details: dict[str, list[int | None]]
-) -> tuple[str, dict[str, list[int | None]]]:
+    current_contact_details: dict[str, dict[str, str]]
+) -> tuple[str, dict[str, dict[str, str]]]:
     """Return updated contact name and phone numbers"""
 
     # Create a copy of the current user details, update tht copy and return it 
     updated_contact_details = current_contact_details.copy()
 
     # Current name
-    current_name = [k for k in updated_contact_details][0]
+    current_name = [name for name in updated_contact_details][0]
+
     # Current phone_nums
-    current_phone_nums = [n for v in updated_contact_details.values() for n in v]
+    current_phone_nums: dict[str, str] = {
+    phone_type: num for phone in updated_contact_details.values() for phone_type, num in phone.items()
+}
 
     # Collect new contact details
-    name = collect_contact_name(mode="update")
-    phone_nums = collect_phone_numbers()
- 
+    updated_name = collect_contact_name(mode="update")
+    updated_phone_nums = collect_phone_numbers(mode="update")
     
-  # Check for duplicate phone nums
-    for num_index, num in phone_nums.items():
-        num = is_duplicate(num)
-
-        # If a number is a dupicate
-        if isinstance(num, dict):
-            duplicate_num = num["is_duplicate"]
-            
-            # if duplicate num is similar to a number belonging to the contact being updated
-            if num in current_phone_nums:
-                # Allow, don't error out
-                break
-            # Else
-            else:
-                # Set it to None
-                phone_nums[num_index] = None
-
-                # Alert user
-                print(
-                    f"\n{num_index}: 0{duplicate_num}, belongs to an existing contact.It won't be added"
-            )
-
     # Update contact details
-    if name:
-        # Update name
-        updated_contact_details[name] = updated_contact_details.pop(current_name, None)
+    print(updated_contact_details)
 
-        # Assign new phone numbers to variables
-    phone1 = phone_nums["phone number 1"]
-    phone2 = phone_nums["phone number 2"]
-    phone3 = phone_nums["phone number 3"]
+    # Update phone numbers
+    for phone_type, num in current_phone_nums.items():
+        if phone_type not in updated_phone_nums.keys():
+            updated_phone_nums[phone_type] = num
+    # Update contact 
+    updated_contact_details[current_name] = updated_phone_nums
 
-    # If the 1st number is updated
-    if phone1:
-        for k in updated_contact_details:
-            updated_contact_details[k][0] = phone1
-    # If the 2nd number is updated
-    if phone2:
-        for k in updated_contact_details:
-            updated_contact_details[k][1] = phone2
-    # If the 3rd number is updated
-    if phone3:
-        for k in updated_contact_details:
-            updated_contact_details[k][2] = phone3
+    # Update name
+    if updated_name:
+        updated_contact_details.pop(current_name) # remove old name
+        updated_contact_details.update({updated_name: updated_phone_nums}) # update name 
+
     return current_name, updated_contact_details
-
 
 

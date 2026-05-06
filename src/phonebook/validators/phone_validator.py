@@ -1,44 +1,58 @@
-#from phonebook.services.contact_service import my_phonebook 
-from phonebook.core.state import my_phonebook
+from phonebook.core.constants import MAX_PHONE_LENGTH
+from phonebook.repository.contact_repository import load_contacts
 
 
-def is_duplicate(phone_number: int | None) -> None | dict | int:
+def is_duplicate_number(phone_number: str) -> tuple[str, str] | None:
     """Checks if a phone number belongs to an existing contact"""
-
-    # If phone number == None, stop here
-    if phone_number == None:
-        return None
 
     # By default we assume the contact is new
     is_duplicate = False
 
     # Read phonebook
-    phonebook = my_phonebook()
+    phonebook = load_contacts()
 
     # Non-empty phonebook
     if phonebook:
 
         # Cross-check the given number with all saved phone numbers
-        # For list of numbers
-        for v in phonebook.values():
-
-            # for number in a particular list
-            for n in v:
-
-                # If phone number(int) == any number in a list(converted to an int)
-                if phone_number == n:
-                    # The phone number already exists in the phonebook
-                    duplicate_num = phone_number
-                    is_duplicate = True
-                    # Stop on the first similarity
-                    break
+        # For dict of numbers
+        for name, phones in phonebook["contacts"].items():
+            # for number in each phone type 
+            for num in phones.values():
+                # If any saved number(str) == the given number (str)
+                if num == phone_number:
+                    # The phone number already       exists in the phonebook
+                    is_duplicate = True 
+                    duplicate = (name, phone_number)
 
     # Existing contact
+    # Return the saved contact 
     if is_duplicate:
-        return {"is_duplicate": duplicate_num}
+        return duplicate 
     # New contact
     else:
-        return phone_number
+        return None
 
 
+def is_valid_phone_format(phone_number: str) -> bool | None:
+    """Returns True if a phone number has the correct length"""
+
+    # len == 10, 1st char is 0 and all chars are numeric
+    if (
+        len(phone_number) == MAX_PHONE_LENGTH
+        and phone_number[0] == "0"
+        and phone_number.isdigit()
+    ):
+
+        # 2nd char == 7
+        if phone_number[1] == "7":
+            return True
+
+        # 2nd char == 1
+        elif phone_number[1] == "1":
+            # Second char == 0 or 1
+            if phone_number[2] == "0" or phone_number[2] == "1":
+                return True
+
+ 
 

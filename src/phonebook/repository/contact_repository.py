@@ -1,35 +1,51 @@
+from phonebook.paths.contacts import get_contacts_file
+
+import json
+
+
+# CORE VARIABLES
+contacts_file = get_contacts_file()
+
 # APPEND NEW CONTACT 
 
-def append_contact(name: str, phone_numbers: dict[str, int]) -> None:
+def append_contact(contact: dict[str | None, dict[str, str]]) -> dict[str | None, dict[str, str]]: 
     """Append a new contact""" 
-        
-    with open("phonebook.txt", "a") as f:
-        f.write(
-                f"{name}| {phone_numbers['phone number 1']} | {phone_numbers['phone number 2']} | {phone_numbers['phone number 3']}\n"
-            )
+
+    # Read file 
+    try:
+        with open(contacts_file, "r") as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        data = {"contacts": {}} 
+
+    # Append data 
+    data["contacts"].update(contact)
+
+    # Save apoended data
+    with open(contacts_file, "w") as file:
+        json.dump(data, file) 
+
+    return contact 
 
 
 # ----- UPDATE / DELETE ----- 
 
-def save_all_contacts(contacts: dict[str, list[int]]) -> None:
+def save_all_contacts(contacts: dict[str, dict[str, dict[str, str]]]) -> None:
     """Rewrites the entire file state""" 
     
-    with open("phonebook.txt", "w") as f:
-        for k,v in contacts.items():
-            f.write(f"{k}| {v[0]} | {v[1]} | {v[2]}\n") 
+    with open(contacts_file, "w") as file:
+        json.dump(contacts, file)
 
 
 # READ FROM THE REPOSITORY 
 
-def load_contacts() -> list[dict[str, list[int | None]]]: 
-    """Load all saved contacts""" 
+def load_contacts() -> dict[str, dict[str, dict[str,str]]]:
+    """Retrieves all the saved contacts"""
 
     try:
-        with open("phonebook.txt", "r") as f:
-            contacts = f.readlines()
+        with open(contacts_file, "r") as file:
+            data = json.load(file)
     except FileNotFoundError:
-        contacts = [] 
-        
-    return contacts  
+        data = {"contacts": {}}
 
-
+    return data 

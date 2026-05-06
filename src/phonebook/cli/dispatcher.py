@@ -2,7 +2,7 @@ from phonebook.services.auth_service import register_contact
 from phonebook.services.contact_service import search_contact, update_contact, delete_contact
 
     
-def dispatch(option: int) -> None:
+def dispatch(option: int) -> str | None:
     """Dispatch commands"""
 
     # EXIT
@@ -35,7 +35,4 @@ def dispatch(option: int) -> None:
         if deleted:
             print(f"\n{deleted} was deleted successfully!")
                            
-    # Invalid option
-    else:
-        print("Invalid option")
       
