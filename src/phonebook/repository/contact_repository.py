@@ -21,7 +21,7 @@ def append_contact(contact: dict[str | None, dict[str, str]]) -> dict[str | None
     # Append data 
     data["contacts"].update(contact)
 
-    # Save apoended data
+    # Save appended data
     with open(contacts_file, "w") as file:
         json.dump(data, file) 
 
